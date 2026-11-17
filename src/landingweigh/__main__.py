@@ -2,7 +2,7 @@ import argparse
 import json
 import tempfile
 from pathlib import Path
-from .domain import trip_import,weigh_import,quota_import
+from .domain import trip_import,weigh_import,quota_import,inspect_import,weigh_adjudicate,quota_transfer
 from .report import report,report_json
 
 def demo(workdir=None):
@@ -15,15 +15,34 @@ def demo(workdir=None):
     quota_import(db,fixtures/"quota_normal.json")
     return {"db":str(db),"release":[{"crate":r["crate_id"],"status":r["status"]} for r in report(db)["release_decision"]]}
 
+def decision_demo(workdir=None):
+    root=Path(workdir or tempfile.mkdtemp(prefix="landingweigh-decisions-"))
+    root.mkdir(parents=True,exist_ok=True)
+    db=root/"landing.db";fixtures=Path.cwd()/"fixtures"
+    trip_import(db,fixtures/"trip_normal.json")
+    weigh_import(db,fixtures/"weigh_normal.json")
+    quota_import(db,fixtures/"quota_normal.json")
+    inspect_import(db,fixtures/"inspect_normal.json")
+    before={r["crate_id"]:r["reason"] for r in report(db)["release_decision"]}
+    quota_transfer(db,fixtures/"transfer_normal.json")
+    weigh_import(db,fixtures/"weigh_conflict.json")
+    disputed={r["crate_id"]:r["reason"] for r in report(db)["release_decision"]}
+    weigh_adjudicate(db,fixtures/"adjudicate_normal.json")
+    final={r["crate_id"]:r["status"] for r in report(db)["release_decision"]}
+    return {"db":str(db),"after_inspection":before,"after_reweigh":disputed,"after_adjudication":final}
+
 def main():
     parser=argparse.ArgumentParser()
     subs=parser.add_subparsers(dest="command",required=True)
-    for name in ("trip-import","weigh-import","quota-import"):
+    for name in ("trip-import","weigh-import","quota-import","inspect-import","weigh-adjudicate","quota-transfer"):
         sub=subs.add_parser(name);sub.add_argument("--db",required=True);sub.add_argument("--file",required=True)
     d=subs.add_parser("demo");d.add_argument("--workdir")
+    dd=subs.add_parser("demo-decisions");dd.add_argument("--workdir")
     r=subs.add_parser("report");r.add_argument("--db",required=True)
     args=parser.parse_args()
     if args.command=="demo":print(json.dumps(demo(args.workdir),ensure_ascii=False))
+    elif args.command=="demo-decisions":print(json.dumps(decision_demo(args.workdir),ensure_ascii=False))
     elif args.command=="report":print(report_json(args.db))
-    else:print(json.dumps({"trip-import":trip_import,"weigh-import":weigh_import,"quota-import":quota_import}[args.command](args.db,args.file),ensure_ascii=False))
+    else:print(json.dumps({"trip-import":trip_import,"weigh-import":weigh_import,"quota-import":quota_import,
+                           "inspect-import":inspect_import,"weigh-adjudicate":weigh_adjudicate,"quota-transfer":quota_transfer}[args.command](args.db,args.file),ensure_ascii=False))
 if __name__=="__main__":main()

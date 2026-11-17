@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
 import pytest
-from landingweigh.domain import trip_import,weigh_import,quota_import
+from landingweigh.domain import trip_import,weigh_import,quota_import,inspect_import,weigh_adjudicate,quota_transfer
 from landingweigh.report import report
 from landingweigh.__main__ import demo
 
@@ -85,3 +85,51 @@ def test_voyage_identity_cannot_be_rewritten_by_new_source(tmp_path):
     with pytest.raises(ValueError,match="voyage_identity_conflict"):
         trip_import(db,file)
     assert report(db)["voyage"][0]["vessel"]=="SEA-1"
+
+def _input(tmp_path,name,payload):
+    file=tmp_path/name;file.write_text(json.dumps(payload),encoding="utf-8");return file
+
+def test_species_inspection_moves_weight_between_quota_accounts(tmp_path):
+    db=tmp_path/"db.sqlite";trip_import(db,F/"trip_normal.json")
+    weigh_import(db,F/"weigh_normal.json");quota_import(db,F/"quota_normal.json")
+    inspection=_input(tmp_path,"inspect.json",{"inspections":[{"id":"I1","crate":"C1","observed_species":"hake",
+        "action":"accept_observed","at":"2026-06-02T02:00:00+00:00","reason":"physical gill count"}]})
+    assert inspect_import(db,inspection)["accepted"]==1
+    state=report(db)
+    assert next(c for c in state["catch_crate"] if c["id"]=="C1")["verified_species"]=="hake"
+    assert next(q for q in state["quota_account"] if q["vessel"]=="SEA-1" and q["species"]=="cod")["used"]=="0"
+    assert next(d for d in state["release_decision"] if d["crate_id"]=="C1")["reason"]=="quota_short"
+    transfer=_input(tmp_path,"transfer.json",{"transfers":[{"id":"X1","from":"SEA-2","to":"SEA-1",
+        "species":"hake","amount":"100","authorizer":"quota-officer"}]})
+    assert quota_transfer(db,transfer)["transferred"]==1
+    assert next(d for d in report(db)["release_decision"] if d["crate_id"]=="C1")["status"]=="released"
+    assert len([e for e in report(db)["release_event"] if e["crate_id"]=="C1"])==3
+
+def test_unlicensed_observed_species_holds_crate_and_reverses_release(tmp_path):
+    db=tmp_path/"db.sqlite";trip_import(db,F/"trip_normal.json")
+    weigh_import(db,F/"weigh_normal.json");quota_import(db,F/"quota_normal.json")
+    assert inspect_import(db,F/"inspect_conflict.json")["held"]==1
+    state=report(db)
+    assert next(c for c in state["catch_crate"] if c["id"]=="C1")["status"]=="held"
+    assert next(d for d in state["release_decision"] if d["crate_id"]=="C1")["reason"]=="crate_held"
+
+def test_quota_transfer_authority_and_unused_balance_are_enforced(tmp_path):
+    db=tmp_path/"db.sqlite";trip_import(db,F/"trip_normal.json");weigh_import(db,F/"weigh_normal.json")
+    quota_import(db,F/"quota_normal.json")
+    bad=_input(tmp_path,"bad-transfer.json",{"transfers":[{"id":"X2","from":"SEA-2","to":"SEA-1",
+        "species":"hake","amount":"20","authorizer":"unknown"}]})
+    with pytest.raises(ValueError,match="transfer_not_authorized"):quota_transfer(db,bad)
+    assert report(db)["quota_transfer"]==[]
+    assert report(db)["source_failure"][-1]["error"]=="transfer_not_authorized"
+
+def test_adjudicated_ticket_releases_dispute_but_later_ticket_stales_decision(tmp_path):
+    db=tmp_path/"db.sqlite";trip_import(db,F/"trip_normal.json");weigh_import(db,F/"weigh_normal.json")
+    quota_import(db,F/"quota_normal.json");weigh_import(db,F/"weigh_conflict.json")
+    decision=_input(tmp_path,"adjudicate.json",{"decisions":[{"id":"A1","crate":"C1","ticket":"T1",
+        "reason":"sealed crate photo matches first weighment"}]})
+    assert weigh_adjudicate(db,decision)["settled"]==1
+    assert next(d for d in report(db)["release_decision"] if d["crate_id"]=="C1")["status"]=="released"
+    late=_input(tmp_path,"late.json",{"calibrations":[],"tickets":[{"id":"T4","crate":"C1","scale":"W1",
+        "at":"2026-06-02T03:00:00+00:00","gross":"102","tare":"2"}]})
+    weigh_import(db,late)
+    assert next(d for d in report(db)["release_decision"] if d["crate_id"]=="C1")["reason"]=="adjudication_stale"
