@@ -20,6 +20,7 @@ def test_cross_vessel_identity_conflict_preserves_state(tmp_path):
     with pytest.raises(ValueError,match="crate_identity_conflict"):
         trip_import(db,F/"trip_conflict.json")
     assert len(report(db)["voyage"])==1
+    assert report(db)["source_failure"][0]["error"]=="crate_identity_conflict"
 
 def test_reweigh_dispute_and_quota_shortage_change_release(tmp_path):
     db=tmp_path/"db.sqlite";trip_import(db,F/"trip_normal.json")

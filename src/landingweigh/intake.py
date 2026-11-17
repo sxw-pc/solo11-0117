@@ -17,5 +17,9 @@ def ingest(path, kind, file, handler):
             result = handler(db,payload,source_id)
             db.execute("UPDATE source_blob SET result=? WHERE id=?", (json.dumps(result,ensure_ascii=False),source_id))
             return result
+    except Exception as exc:
+        with db:
+            db.execute("INSERT INTO source_failure(kind,sha,raw,error) VALUES (?,?,?,?)",(kind,sha,raw,str(exc)))
+        raise
     finally:
         db.close()

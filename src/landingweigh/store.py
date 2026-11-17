@@ -4,6 +4,7 @@ from pathlib import Path
 SCHEMA = """
 PRAGMA foreign_keys=ON;
 CREATE TABLE IF NOT EXISTS source_blob(id INTEGER PRIMARY KEY,kind TEXT NOT NULL,sha TEXT NOT NULL,raw BLOB NOT NULL,result TEXT,UNIQUE(kind,sha));
+CREATE TABLE IF NOT EXISTS source_failure(id INTEGER PRIMARY KEY,kind TEXT,sha TEXT,raw BLOB,error TEXT,created_at TEXT DEFAULT CURRENT_TIMESTAMP);
 CREATE TABLE IF NOT EXISTS voyage(id TEXT PRIMARY KEY,vessel TEXT NOT NULL,permit TEXT NOT NULL,depart TEXT NOT NULL,arrive TEXT NOT NULL,status TEXT NOT NULL,source_id INTEGER REFERENCES source_blob(id));
 CREATE TABLE IF NOT EXISTS catch_crate(id TEXT PRIMARY KEY,voyage_id TEXT REFERENCES voyage(id),species TEXT NOT NULL,seal TEXT NOT NULL,status TEXT NOT NULL,source_id INTEGER REFERENCES source_blob(id));
 CREATE TABLE IF NOT EXISTS scale_calibration(scale TEXT,revision INTEGER,start_at TEXT,end_at TEXT,tolerance TEXT,source_id INTEGER REFERENCES source_blob(id),PRIMARY KEY(scale,revision));

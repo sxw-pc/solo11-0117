@@ -4,7 +4,7 @@ from .store import connect
 def report(path):
     db=connect(path)
     try:
-        names=["source_blob","voyage","catch_crate","scale_calibration","weigh_ticket","quota_account","release_decision","release_event"]
+        names=["source_blob","source_failure","voyage","catch_crate","scale_calibration","weigh_ticket","quota_account","release_decision","release_event"]
         data={name:[dict(row) for row in db.execute("SELECT * FROM "+name)] for name in names}
         data["chains"]=[dict(row) for row in db.execute("""
             SELECT c.id AS crate,c.species,c.status AS crate_status,v.id AS voyage,v.vessel,v.status AS voyage_status,
