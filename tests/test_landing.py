@@ -75,3 +75,12 @@ def test_arrival_window_and_bad_net_block_downstream(tmp_path):
     quota_file.write_text(json.dumps({"quotas":[{"vessel":"SEA-3","species":"cod","capacity":"100"}]}),encoding="utf-8")
     assert quota_import(db,quota_file)["held"]==1
     assert report(db)["release_decision"][0]["reason"]=="crate_held"
+
+def test_voyage_identity_cannot_be_rewritten_by_new_source(tmp_path):
+    db=tmp_path/"db.sqlite";trip_import(db,F/"trip_normal.json")
+    changed=json.loads((F/"trip_normal.json").read_text())
+    changed["voyages"][0]["vessel"]="SEA-OTHER"
+    file=tmp_path/"changed.json";file.write_text(json.dumps(changed),encoding="utf-8")
+    with pytest.raises(ValueError,match="voyage_identity_conflict"):
+        trip_import(db,file)
+    assert report(db)["voyage"][0]["vessel"]=="SEA-1"
