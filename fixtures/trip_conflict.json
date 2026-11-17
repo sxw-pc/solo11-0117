@@ -1,0 +1,1 @@
+{"voyages":[{"id":"V2","vessel":"SEA-2","permit":"P-2","depart":"2026-06-01T00:00:00+00:00","arrive":"2026-06-02T00:00:00+00:00"}],"crates":[{"id":"C1","voyage":"V2","species":"cod","seal":"S9"}]}
