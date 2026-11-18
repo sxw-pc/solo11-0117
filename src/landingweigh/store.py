@@ -18,6 +18,8 @@ CREATE TABLE IF NOT EXISTS transfer_authority(vessel TEXT,species TEXT,authorize
 CREATE TABLE IF NOT EXISTS quota_transfer(id TEXT PRIMARY KEY,from_vessel TEXT,to_vessel TEXT,species TEXT,amount TEXT,authorizer TEXT,source_id INTEGER REFERENCES source_blob(id));
 CREATE TABLE IF NOT EXISTS release_decision(crate_id TEXT PRIMARY KEY,status TEXT NOT NULL,weight TEXT,reason TEXT NOT NULL,ticket_id TEXT,source_id INTEGER REFERENCES source_blob(id));
 CREATE TABLE IF NOT EXISTS release_event(id INTEGER PRIMARY KEY,crate_id TEXT,status TEXT,weight TEXT,reason TEXT,source_id INTEGER REFERENCES source_blob(id));
+CREATE TABLE IF NOT EXISTS crate_custody(crate_id TEXT PRIMARY KEY REFERENCES catch_crate(id),holder_vessel TEXT NOT NULL,seal TEXT NOT NULL,last_at TEXT NOT NULL,status TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS crate_handover(id TEXT PRIMARY KEY,crate_id TEXT REFERENCES catch_crate(id),from_vessel TEXT,to_vessel TEXT,port TEXT,at TEXT,old_seal TEXT,new_seal TEXT,release_ref TEXT,accept_ref TEXT,source_id INTEGER REFERENCES source_blob(id));
 """
 
 def connect(path):

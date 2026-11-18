@@ -1,0 +1,1 @@
+{"handovers":[{"id":"H1","crate":"C1","from":"SEA-1","to":"SEA-2","port":"PORT-B","at":"2026-06-02T02:00:00+00:00","old_seal":"S1","new_seal":"S1-B","release_ref":"release-H1","accept_ref":"accept-H1"}]}

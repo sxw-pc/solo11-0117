@@ -4,6 +4,7 @@ import tempfile
 from pathlib import Path
 from .domain import trip_import,weigh_import,quota_import,inspect_import,weigh_adjudicate,quota_transfer
 from .report import report,report_json
+from .relay import relay_import
 
 def demo(workdir=None):
     root=Path(workdir or tempfile.mkdtemp(prefix="landingweigh-"))
@@ -34,7 +35,7 @@ def decision_demo(workdir=None):
 def main():
     parser=argparse.ArgumentParser()
     subs=parser.add_subparsers(dest="command",required=True)
-    for name in ("trip-import","weigh-import","quota-import","inspect-import","weigh-adjudicate","quota-transfer"):
+    for name in ("trip-import","weigh-import","quota-import","inspect-import","weigh-adjudicate","quota-transfer","relay-import"):
         sub=subs.add_parser(name);sub.add_argument("--db",required=True);sub.add_argument("--file",required=True)
     d=subs.add_parser("demo");d.add_argument("--workdir")
     dd=subs.add_parser("demo-decisions");dd.add_argument("--workdir")
@@ -44,5 +45,6 @@ def main():
     elif args.command=="demo-decisions":print(json.dumps(decision_demo(args.workdir),ensure_ascii=False))
     elif args.command=="report":print(report_json(args.db))
     else:print(json.dumps({"trip-import":trip_import,"weigh-import":weigh_import,"quota-import":quota_import,
-                           "inspect-import":inspect_import,"weigh-adjudicate":weigh_adjudicate,"quota-transfer":quota_transfer}[args.command](args.db,args.file),ensure_ascii=False))
+                           "inspect-import":inspect_import,"weigh-adjudicate":weigh_adjudicate,"quota-transfer":quota_transfer,
+                           "relay-import":relay_import}[args.command](args.db,args.file),ensure_ascii=False))
 if __name__=="__main__":main()

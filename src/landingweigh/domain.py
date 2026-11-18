@@ -59,6 +59,9 @@ def trip_import(path,file):
             if old:
                 continue
             db.execute("INSERT INTO catch_crate VALUES (?,?,?,?,?,?,?)",(item["id"],*values,source))
+            if voyage and status=="eligible":
+                db.execute("INSERT INTO crate_custody VALUES (?,?,?,?,?)",
+                           (item["id"],voyage["vessel"],item["seal"],voyage["arrive"],"continuous"))
             counts["crates"]+=1
             counts["held"]+=status=="held"
         return counts
