@@ -20,6 +20,18 @@ CREATE TABLE IF NOT EXISTS release_decision(crate_id TEXT PRIMARY KEY,status TEX
 CREATE TABLE IF NOT EXISTS release_event(id INTEGER PRIMARY KEY,crate_id TEXT,status TEXT,weight TEXT,reason TEXT,source_id INTEGER REFERENCES source_blob(id));
 CREATE TABLE IF NOT EXISTS crate_custody(crate_id TEXT PRIMARY KEY REFERENCES catch_crate(id),holder_vessel TEXT NOT NULL,seal TEXT NOT NULL,last_at TEXT NOT NULL,status TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS crate_handover(id TEXT PRIMARY KEY,crate_id TEXT REFERENCES catch_crate(id),from_vessel TEXT,to_vessel TEXT,port TEXT,at TEXT,old_seal TEXT,new_seal TEXT,release_ref TEXT,accept_ref TEXT,source_id INTEGER REFERENCES source_blob(id));
+CREATE TABLE IF NOT EXISTS pallet_pack(id TEXT PRIMARY KEY,pallet_id TEXT NOT NULL,vessel TEXT NOT NULL,seal TEXT NOT NULL,at TEXT NOT NULL,sign_ref TEXT,source_id INTEGER REFERENCES source_blob(id));
+CREATE TABLE IF NOT EXISTS pallet_pack_crate(pack_id TEXT REFERENCES pallet_pack(id),crate_id TEXT NOT NULL,PRIMARY KEY(pack_id,crate_id));
+CREATE TABLE IF NOT EXISTS pallet_split(id TEXT PRIMARY KEY,from_pallet TEXT NOT NULL,vessel TEXT,old_seal TEXT,at TEXT NOT NULL,release_ref TEXT,accept_ref TEXT,source_id INTEGER REFERENCES source_blob(id));
+CREATE TABLE IF NOT EXISTS pallet_split_part(split_id TEXT REFERENCES pallet_split(id),pallet_id TEXT NOT NULL,crate_count INTEGER NOT NULL,seal TEXT,PRIMARY KEY(split_id,pallet_id));
+CREATE TABLE IF NOT EXISTS pallet_merge(id TEXT PRIMARY KEY,into_pallet TEXT NOT NULL,vessel TEXT,seal TEXT,at TEXT NOT NULL,release_ref TEXT,accept_ref TEXT,source_id INTEGER REFERENCES source_blob(id));
+CREATE TABLE IF NOT EXISTS pallet_merge_part(merge_id TEXT REFERENCES pallet_merge(id),pallet_id TEXT NOT NULL,old_seal TEXT,PRIMARY KEY(merge_id,pallet_id));
+CREATE TABLE IF NOT EXISTS pallet_handover(id TEXT PRIMARY KEY,pallet_id TEXT NOT NULL,from_vessel TEXT,to_vessel TEXT,port TEXT,at TEXT NOT NULL,old_seal TEXT,new_seal TEXT,release_ref TEXT,accept_ref TEXT,source_id INTEGER REFERENCES source_blob(id));
+CREATE TABLE IF NOT EXISTS crate_recheck(id TEXT PRIMARY KEY,crate_id TEXT NOT NULL,pallet_id TEXT NOT NULL,vessel TEXT,seal TEXT,at TEXT NOT NULL,sign_ref TEXT,source_id INTEGER REFERENCES source_blob(id));
+CREATE TABLE IF NOT EXISTS pallet_state(pallet_id TEXT PRIMARY KEY,holder_vessel TEXT,seal TEXT,live INTEGER NOT NULL,born_at TEXT,gone_at TEXT,possible_contents TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS crate_whereabouts(crate_id TEXT PRIMARY KEY,definite_vessel TEXT,possible_vessels TEXT NOT NULL,possible_pallets TEXT NOT NULL,handover_sequence TEXT NOT NULL,route_unique INTEGER NOT NULL,chain_broken INTEGER NOT NULL,hold_reasons TEXT NOT NULL,receipt_ok INTEGER NOT NULL,custody_ok INTEGER NOT NULL);
+CREATE TABLE IF NOT EXISTS evidence_conflict(id INTEGER PRIMARY KEY,kind TEXT NOT NULL,event_id TEXT,detail TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS evidence_conflict_crate(conflict_id INTEGER REFERENCES evidence_conflict(id),crate_id TEXT NOT NULL,PRIMARY KEY(conflict_id,crate_id));
 """
 
 def connect(path):
