@@ -1,0 +1,1 @@
+{"calibrations":[{"scale":"W1","revision":1,"start":"2026-01-01T00:00:00+00:00","end":"2027-01-01T00:00:00+00:00","tolerance":"1.0"}],"tickets":[{"id":"TC-1","crate":"CC-1","scale":"W1","at":"2026-06-01T13:00:00+00:00","gross":"102","tare":"2"}]}

@@ -5,8 +5,12 @@ SCHEMA = """
 PRAGMA foreign_keys=ON;
 CREATE TABLE IF NOT EXISTS source_blob(id INTEGER PRIMARY KEY,kind TEXT NOT NULL,sha TEXT NOT NULL,raw BLOB NOT NULL,result TEXT,UNIQUE(kind,sha));
 CREATE TABLE IF NOT EXISTS source_failure(id INTEGER PRIMARY KEY,kind TEXT,sha TEXT,raw BLOB,error TEXT,created_at TEXT DEFAULT CURRENT_TIMESTAMP);
-CREATE TABLE IF NOT EXISTS voyage(id TEXT PRIMARY KEY,vessel TEXT NOT NULL,permit TEXT NOT NULL,depart TEXT NOT NULL,arrive TEXT NOT NULL,status TEXT NOT NULL,source_id INTEGER REFERENCES source_blob(id));
-CREATE TABLE IF NOT EXISTS fishing_permit(id TEXT PRIMARY KEY,vessel TEXT,start_at TEXT,end_at TEXT,source_id INTEGER REFERENCES source_blob(id));
+CREATE TABLE IF NOT EXISTS voyage(id TEXT PRIMARY KEY,vessel TEXT NOT NULL,permit TEXT NOT NULL,depart TEXT NOT NULL,arrive TEXT NOT NULL,status TEXT NOT NULL,depart_device TEXT,arrive_device TEXT,clock_detail TEXT,source_id INTEGER REFERENCES source_blob(id));
+CREATE TABLE IF NOT EXISTS fishing_permit(id TEXT PRIMARY KEY,vessel TEXT,start_at TEXT,end_at TEXT,start_event TEXT NOT NULL DEFAULT 'arrive',end_event TEXT NOT NULL DEFAULT 'arrive',source_id INTEGER REFERENCES source_blob(id));
+CREATE TABLE IF NOT EXISTS voyage_status_event(id INTEGER PRIMARY KEY,voyage_id TEXT NOT NULL,status TEXT NOT NULL,reason TEXT,source_id INTEGER REFERENCES source_blob(id));
+CREATE TABLE IF NOT EXISTS clock_sheet(id TEXT PRIMARY KEY,voyage TEXT NOT NULL,issuer TEXT NOT NULL,issued_at TEXT NOT NULL,status TEXT NOT NULL,reason TEXT,source_id INTEGER REFERENCES source_blob(id));
+CREATE TABLE IF NOT EXISTS clock_anchor(sheet_id TEXT REFERENCES clock_sheet(id),device TEXT NOT NULL,offset_lower TEXT NOT NULL,offset_upper TEXT NOT NULL,PRIMARY KEY(sheet_id,device));
+CREATE TABLE IF NOT EXISTS clock_constraint(sheet_id TEXT REFERENCES clock_sheet(id),seq INTEGER NOT NULL,device_a TEXT NOT NULL,device_b TEXT NOT NULL,checked_at TEXT NOT NULL,diff_lower TEXT NOT NULL,diff_upper TEXT NOT NULL,PRIMARY KEY(sheet_id,seq));
 CREATE TABLE IF NOT EXISTS permit_species(permit_id TEXT REFERENCES fishing_permit(id),species TEXT,PRIMARY KEY(permit_id,species));
 CREATE TABLE IF NOT EXISTS catch_crate(id TEXT PRIMARY KEY,voyage_id TEXT REFERENCES voyage(id),species TEXT NOT NULL,verified_species TEXT NOT NULL,seal TEXT NOT NULL,status TEXT NOT NULL,source_id INTEGER REFERENCES source_blob(id));
 CREATE TABLE IF NOT EXISTS species_inspection(id TEXT PRIMARY KEY,crate_id TEXT REFERENCES catch_crate(id),observed_species TEXT,action TEXT,inspected_at TEXT,reason TEXT,source_id INTEGER REFERENCES source_blob(id));
